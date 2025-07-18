@@ -4,13 +4,14 @@ import { useNavigate } from 'react-router-dom'
 import { logout } from '../redux/Slice/AuthSlice'
 import axios from 'axios'
 import { BaseUrl } from '../../services/Api_Endpoint'
-import { setSelectedUser } from '../redux/Slice/Selecteduser'
+import { removeSelectedUser, setSelectedUser } from '../redux/Slice/Selecteduser'
 
-export default function Sidebar() {
+export default function Sidebar({socket}) {
         
     const dispatch =useDispatch()
     const navigate = useNavigate()
     const [users,setUsers ] = useState([])
+    const [online,setOnline] = useState([])
 
     const {user} = useSelector((state)=>state.auth)
     
@@ -24,6 +25,10 @@ export default function Sidebar() {
 
     const handlelogout = async ()=> {
        await dispatch(logout())
+       await dispatch(removeSelectedUser())
+       if (socket) {
+        socket.disconnect()
+       }
        navigate('/login')
     }
 
@@ -43,6 +48,19 @@ console.log(error);
     useEffect (()=>{
         GetUsers()
     },[])
+    
+    useEffect(()=>{
+        if (socket) {
+            socket.on("getUser",(users)=>{
+                setOnline(users)
+            })
+        }
+        return()=>{
+            if (socket) {
+                socket.off("getuser")
+            }
+        }
+    },[socket])
 
     const handleselect=(user) => {
 // console.log('user',user);
@@ -51,6 +69,10 @@ console.log(error);
     }
 
      const fillterUser = users && users.filter((curUser)=> curUser._id !== user._id)
+
+     const isUserOnline = (userId)=>{
+        return online.some((online)=>online.userId === userId)
+     }
 
 
   return (
@@ -88,7 +110,9 @@ console.log(error);
                 <img src={ user.profile}
                 className='ml-[13px] rounded-full w-[50px] h-[50px] object-cover  '
                 alt="" />
+                {isUserOnline(user._id) &&
                 <span className="h-2.5 w-2.5 rounded-full bg-green-600 block absolute bottom-1 right-0  "></span>
+                }
             </span>
             <span className="font-medium">{user.name}</span>
         </li>

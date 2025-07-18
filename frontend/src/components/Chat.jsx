@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react'
 import { IoIosSend, IoIosVideocam } from 'react-icons/io';
 import { CiSearch } from 'react-icons/ci';
@@ -12,13 +13,13 @@ import { BaseUrl } from '../../services/Api_Endpoint';
 
 
 
-export default function Chat() {
+export default function Chat({socket}) {
   const {selecteUser} = useSelector((state)=>state.selectedUser)
   // console.log('selected' ,selecteUser);
 
   const [msgText,setMsgText] = useState('')
 
-  const [rmessages,setRmessages] = useState ([])
+  const [messages,setMessages] = useState ([])
   // console.log('message', rmessages);
   
 
@@ -33,7 +34,7 @@ export default function Chat() {
         }
           const response = await axios.post(`${BaseUrl}/api/messages/get-message`,messageData)
         const data = response.data
-        setRmessages(data.data)
+        setMessages(data.data)
         // console.log('data', data);
         
      } catch (error) {
@@ -46,8 +47,29 @@ export default function Chat() {
       GetMsgg()
      },[])
 
+     useEffect(()=>{
+      if (socket) {
+        socket.off('reciverMessage');
+        socket.on('reciverMessage',(newMessage) => {
+          if (newMessage.userId === selecteUser?._id) {
+            setMessages((prevMessages)=> [... prevMessages, newMessage]);
+          }
+          else {
+            console.log(('Message not for the selected user, ignoring...'));
+            
+          }
+        })
+      }
+     },[socket,selecteUser])
+
 
   const handlemessageSend = async() =>{
+     if (!msgText.trim()) return;
+
+  if (!socket || !socket.connected) {
+    console.warn("⚠️ Socket not connected yet");
+    return;
+  }
     try {
         const messageData = {
           senderId:user._id,
@@ -55,6 +77,14 @@ export default function Chat() {
           message : msgText.trim()
         }
          
+         
+          socket.emit("sendMessage", {messageData});
+          const UpdateMessage={
+            userId:user._id,
+            message:msgText.trim(),
+            time:Date.now()
+          }
+          setMessages((prev)=>(Array.isArray(prev) ? [ ...prev,UpdateMessage] : [UpdateMessage]))
         const sendMsg = await axios.post(`${BaseUrl}/api/messages/create-message`,messageData)
         const data = sendMsg.data
         // console.log('data', data);
@@ -97,9 +127,9 @@ export default function Chat() {
         {/* Header End  */}
 
         {/* message start */}
-          
-          <div className="flex-1 relative mt-[70px]">
-           {rmessages && Array.isArray (rmessages) && rmessages .map((item,index)=>{
+          <div className=" ">
+          <div className="flex-1 relative mt-[70px]  ">
+           {messages && Array.isArray (messages) && messages .map((item,index)=>{
             return(
                    <div key={index}>
                 <div className={`${item.userId === user._id ? 'flex justify-end': 'flex justify-start'}`}>
@@ -112,6 +142,7 @@ export default function Chat() {
             )
            })}
            
+          </div>
           </div>
 
         {/* message end  */}
