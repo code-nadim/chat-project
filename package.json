@@ -9,7 +9,8 @@
     "start": "node index.js",
     "dev:frontend": "cd ./frontend && npm run dev",
     "dev:backend": "nodemon index.js",
-    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\""
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "build": "cd client && npm install && npm run build"
   },
   "repository": {
     "type": "git",
@@ -26,6 +27,7 @@
     "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
+    "mongodb": "^6.17.0",
     "mongoose": "^8.15.2",
     "multer": "^2.0.1",
     "react-hot-toast": "^2.5.2",
